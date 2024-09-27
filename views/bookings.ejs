@@ -1,0 +1,130 @@
+<!-- views/bookings.ejs -->
+<%- include("head") %>
+<%- include("header") %>
+
+<input id="searchbar" onkeyup="search()" type="text"
+name="search" placeholder="Search Name.."> 
+
+<div>
+    <% for (var i = 0; i < booking_data.length; i++) { %>
+        <div class="bookingsTitle">
+
+            <!-- this .name refers to the mongodb schema (in the database.js file) -->
+            <p>Name: <%= booking_data[i].name %></p> 
+            <p>Email: <%= booking_data[i].email %></p>
+            <p>Phone Number: <%= booking_data[i].phoneNumber %></p>
+            <p>Start Date: <%= booking_data[i].startDate %></p>
+            <p>End Date: <%= booking_data[i].endDate %></p> 
+            <p>Card Number: <%= booking_data[i].card %></p>
+            <p>CVC: <%= booking_data[i].cvc %></p>
+            <p>Expiry: <%= booking_data[i].expiry %></p>
+
+            <!-- Add an "Edit" button with the booking ID -->
+            <button onclick="toggleEdit('<%= booking_data[i]._id %>')" class="heroButton editButton">Edit</button>
+            <!-- Add an "Delete" button with the booking ID -->
+            <button onclick="deleteBooking('<%= booking_data[i]._id %>')" href="" class="herobutton">Delete</button>
+            <br>
+
+             <!-- Edit form initially hidden -->
+        <form id="editForm<%= booking_data[i]._id %>" style="display: none;">
+            <input type="text" id="editName<%= booking_data[i]._id %>" value="<%= booking_data[i].name %>">
+            <input type="text" id="editEmail<%= booking_data[i]._id %>" value="<%= booking_data[i].email %>">
+            <input type="text" id="editPhoneNumber<%= booking_data[i]._id %>" value="<%= booking_data[i].phoneNumber %>">
+            <input type="text" id="editStartDate<%= booking_data[i]._id %>" value="<%= booking_data[i].startDate %>">
+            <input type="text" id="editEndDate<%= booking_data[i]._id %>" value="<%= booking_data[i].endDate %>">
+            <input type="text" id="editCard<%= booking_data[i]._id %>" value="<%= booking_data[i].card %>">
+            <input type="text" id="editCVC<%= booking_data[i]._id %>" value="<%= booking_data[i].cvc %>">
+            <input type="text" id="editExpiry<%= booking_data[i]._id %>" value="<%= booking_data[i].expiry %>">
+            <button onclick="saveEdit('<%= booking_data[i]._id %>')" class="heroButton">Save</button>
+            <button onclick="cancelEdit('<%= booking_data[i]._id %>')" class="heroButton">Cancel</button>
+        </form>
+        </div>
+    <% } %>
+</div>
+
+<%- include("footer") %>
+
+<script>
+function deleteBooking(bookingId){
+    fetch(`/delete/${bookingId}`, {
+        method: 'DELETE',
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            console.log('Delete successful');
+            const bookingDiv = document.getElementById(`booking-${bookingId}`);
+            if (bookingDiv) {
+                bookingDiv.remove();
+            }
+        } else {
+            console.error('Delete failed:', result.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error during delete:', error);
+    });
+}
+
+function search() {
+    const searchTerm = document.getElementById('searchbar').value.toLowerCase();
+    const bookings = document.querySelectorAll('.bookingsTitle');
+
+    bookings.forEach(booking => {
+        const bookingName = booking.querySelector('p').textContent.toLowerCase();
+        const shouldShow = bookingName.includes(searchTerm);
+        booking.style.display = shouldShow ? 'block' : 'none';
+    });
+}
+
+function toggleEdit(bookingId) {
+    const editForm = document.getElementById(`editForm${bookingId}`);
+    editForm.style.display = editForm.style.display === 'none' ? 'block' : 'none';
+}
+
+function saveEdit(bookingId){
+    console.log('Save button clicked for booking ID:', bookingId);
+    const editedData = {
+        name: document.getElementById(`editName${bookingId}`).value,
+        email: document.getElementById(`editEmail${bookingId}`).value,
+        phoneNumber: document.getElementById(`editPhoneNumber${bookingId}`).value,
+        startDate: document.getElementById(`editStartDate${bookingId}`).value,
+        endDate: document.getElementById(`editEndDate${bookingId}`).value,
+        card: document.getElementById(`editCard${bookingId}`).value,
+        cvc: document.getElementById(`editCVC${bookingId}`).value,
+        expiry: document.getElementById(`editExpiry${bookingId}`).value,
+    };
+
+    fetch(`/edit/${bookingId}`, {
+        method: 'PUT',
+        headers: {
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify(editedData),
+    })
+    .then(response => response.json())
+    .then(result => {
+        if (result.success) {
+            console.log('Edit successful');
+            //update the displayed data on the client side
+            toggleEdit(bookingId); // Hide the edit form
+
+            //If you want to update the displayed data, you can manually update it
+            const bookingElement = document.querySelector(`#booking-${bookingId}`);
+            if (bookingElement) {
+                bookingElement.querySelector('.name').textContent = `Name: ${editedData.name}`;
+                bookingElement.querySelector('.email').textContent = `Email: ${editedData.email}`;
+            }
+        } else {
+            console.error('Edit failed:', result.error);
+        }
+    })
+    .catch(error => {
+        console.error('Error during edit:', error);
+    });
+}
+
+function cancelEdit(bookingId){
+    toggleEdit(bookingId); // Hide the edit form
+}
+</script>
